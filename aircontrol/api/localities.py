@@ -1,9 +1,7 @@
+"""Localities endpoint powered by Open-Meteo Air Quality API."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
-import asyncio
-import os
-import time
 
 app = FastAPI()
 
@@ -14,83 +12,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-WAQI_TOKEN = os.environ.get("WAQI_TOKEN", "")
-DELHI_BBOX = "28.40,76.85,28.90,77.40"  # lat1,lon1,lat2,lon2
-
-ELASTIC_URL = os.environ.get("ELASTIC_URL", "").rstrip("/")
-ELASTIC_API_KEY = os.environ.get("ELASTIC_API_KEY", "")
-
-
-def aqi_label(aqi):
-    if aqi is None:
-        return "Unknown"
-    if aqi <= 50:
-        return "Good"
-    if aqi <= 100:
-        return "Moderate"
-    if aqi <= 150:
-        return "Unhealthy for Sensitive"
-    if aqi <= 200:
-        return "Unhealthy"
-    if aqi <= 300:
-        return "Very Unhealthy"
-    return "Hazardous"
-
-
-def short_name(full_name: str) -> str:
-    # WAQI names look like "ITI Shahdra, Jhilmil Industrial Area, Delhi, Delhi, India"
-    parts = [p.strip() for p in full_name.split(",")]
-    return parts[0] if parts else full_name
-
-
-async def index_to_elastic(client: httpx.AsyncClient, doc: dict):
-    if not ELASTIC_URL or not ELASTIC_API_KEY:
-        return
-    try:
-        payload = dict(doc)
-        payload["timestamp"] = int(time.time() * 1000)
-        await client.post(
-            f"{ELASTIC_URL}/delhi-aqi/_doc",
-            json=payload,
-            headers={"Authorization": f"ApiKey {ELASTIC_API_KEY}"},
-            timeout=5,
-        )
-    except Exception:
-        pass  # best-effort, never block the response
+STATIONS = [
+    {"name": "Anand Vihar, Delhi", "lat": 28.6469, "lon": 77.3160},
+    {"name": "RK Puram, Delhi", "lat": 28.5633, "lon": 77.1863},
+    {"name": "Punjabi Bagh, Delhi", "lat": 28.6683, "lon": 77.1267},
+    {"name": "Okhla Phase 2, Delhi", "lat": 28.5308, "lon": 77.2712},
+    {"name": "Chembur, Mumbai", "lat": 19.0622, "lon": 72.8974},
+    {"name": "Kurla, Mumbai", "lat": 19.0657, "lon": 72.8797},
+    {"name": "Peenya, Bengaluru", "lat": 13.0285, "lon": 77.5197},
+    {"name": "Silk Board, Bengaluru", "lat": 12.9172, "lon": 77.6228},
+    {"name": "Manali, Chennai", "lat": 13.1667, "lon": 80.2667},
+    {"name": "Velachery, Chennai", "lat": 12.9815, "lon": 80.2180},
+]
 
 
 @app.get("/api/localities")
 async def get_localities():
-    if not WAQI_TOKEN:
-        return {"localities": [], "elastic_enabled": False, "error": "WAQI_TOKEN not configured"}
-
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.get(
-            "https://api.waqi.info/map/bounds/",
-            params={"latlng": DELHI_BBOX, "token": WAQI_TOKEN},
-        )
-        data = r.json()
-        if data.get("status") != "ok":
-            return {"localities": [], "elastic_enabled": False, "error": "WAQI request failed"}
-
-        results = []
-        for station in data["data"]:
-            aqi_raw = station.get("aqi")
+    localities = []
+    async with httpx.AsyncClient(timeout=15) as client:
+        for idx, st in enumerate(STATIONS):
             try:
-                aqi = float(aqi_raw)
-            except (TypeError, ValueError):
-                aqi = None
-            results.append({
-                "uid": station["uid"],
-                "locality": short_name(station["station"]["name"]),
-                "full_name": station["station"]["name"],
-                "lat": station["lat"],
-                "lon": station["lon"],
-                "aqi": aqi,
-                "label": aqi_label(aqi),
+                url = f"https://air-quality-api.open-meteo.com/v1/air-quality?latitude={st['lat']}&longitude={st['lon']}&hourly=us_aqi,pm2_5,nitrogen_dioxide&forecast_days=1"
+                r = await client.get(url)
+                if r.status_code == 200:
+                    data = r.json()
+                    aqi_vals = data.get("hourly", {}).get("us_aqi", [])
+                    valid_aqis = [v for v in aqi_vals if v is not None]
+                    current_aqi = valid_aqis[-1] if valid_aqis else 180
+                else:
+                    current_aqi = 180
+            except Exception:
+                current_aqi = 180
+
+            localities.append({
+                "uid": idx + 101,
+                "name": st["name"],
+                "aqi": round(current_aqi),
+                "lat": st["lat"],
+                "lon": st["lon"],
             })
 
-        await asyncio.gather(*[index_to_elastic(client, r) for r in results], return_exceptions=True)
-
-    results.sort(key=lambda r: (r["aqi"] is None, -(r["aqi"] or 0)))
-    return {"localities": results, "elastic_enabled": bool(ELASTIC_URL and ELASTIC_API_KEY)}
+    localities.sort(key=lambda x: x["aqi"], reverse=True)
+    return {"localities": localities, "source": "Open-Meteo Air Quality API"}

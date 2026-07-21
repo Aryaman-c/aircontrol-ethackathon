@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
 cd "$(dirname "$0")"
-source ~/.config/keys.env
+source ~/.config/keys.env 2>/dev/null || true
 export GEMINI_API_KEY
-export ELASTIC_URL
-export ELASTIC_API_KEY
-export WAQI_TOKEN=f7a92c88e9ed4318d03147f1e3d19a83919f0d69
 
 pkill -f "uvicorn api\." 2>/dev/null || true
 sleep 1
