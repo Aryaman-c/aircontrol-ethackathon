@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-deep: #0E1417;
+  --bg-panel: #151C21;
+  --bg-panel-2: #1B242A;
+  --line: #28343C;
+  --ink: #E7EEF1;
+  --ink-dim: #8CA2AC;
+  --ink-faint: #5A6D76;
+  --accent-teal: #2DD4BF;
+  --good: #3FA796;
+  --satisfactory: #7CB342;
+  --moderate: #D9A441;
+  --poor: #D97706;
+  --severe: #C2410C;
+  --hazardous: #8B2E2E;
+  --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --cond: 'Oswald', 'Arial Narrow', sans-serif;
+  --body: 'Inter', -apple-system, sans-serif;
+
+  --background: 200 24% 7%;
+  --foreground: 197 22% 93%;
+  --card: 204 22% 10%;
+  --card-foreground: 197 22% 93%;
+  --popover: 204 22% 10%;
+  --popover-foreground: 197 22% 93%;
+  --primary: 172 66% 50%;
+  --primary-foreground: 200 24% 7%;
+  --secondary: 204 21% 14%;
+  --secondary-foreground: 197 22% 93%;
+  --muted: 204 21% 14%;
+  --muted-foreground: 200 14% 61%;
+  --accent: 172 66% 50%;
+  --accent-foreground: 200 24% 7%;
+  --destructive: 18 90% 40%;
+  --destructive-foreground: 197 22% 93%;
+  --border: 204 20% 20%;
+  --input: 204 20% 20%;
+  --ring: 172 66% 50%;
+  --radius: 0.375rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-deep);
+  color: var(--ink);
+  font-family: var(--body);
+  min-height: 100vh;
+}
+
+/* Custom AeroSense / Air Control utility classes */
+.font-mono-custom { font-family: var(--mono); }
+.font-cond-custom { font-family: var(--cond); }
+.font-body-custom { font-family: var(--body); }
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.animate-pulse-live {
+  animation: pulse-live 2s infinite;
+}
+
+.animate-pulse-alert {
+  animation: pulse-live 1.4s infinite;
+}

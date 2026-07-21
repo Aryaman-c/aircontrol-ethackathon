@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/city",       "destination": "/api/city.py" },
+    { "source": "/api/ml",         "destination": "/api/ml.py" },
+    { "source": "/api/localities", "destination": "/api/localities.py" },
+    { "source": "/api/history",    "destination": "/api/history.py" },
+    { "source": "/api/advisory",   "destination": "/api/advisory.py" },
+    { "source": "/api/trip",       "destination": "/api/trip.py" },
+    { "source": "/(.*)",           "destination": "/index.html" }
+  ]
+}
